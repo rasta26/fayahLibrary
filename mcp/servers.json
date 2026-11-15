@@ -1,0 +1,49 @@
+{
+  "_comment": "Curated MCP servers. `default: true` are installed by ./install at user scope. Others: ./install --mcp <name>. Entries with `env` prompt for the variable if unset.",
+  "servers": {
+    "sequential-thinking": {
+      "default": true,
+      "why": "Structured step-by-step reasoning for audits and spec decomposition.",
+      "command": "npx", "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+    },
+    "memory": {
+      "default": true,
+      "why": "Knowledge-graph memory across sessions: mentee growth notes, audit findings.",
+      "command": "npx", "args": ["-y", "@modelcontextprotocol/server-memory"]
+    },
+    "context7": {
+      "default": true,
+      "why": "Up-to-date library docs when picking up a new language or framework.",
+      "command": "npx", "args": ["-y", "@upstash/context7-mcp"]
+    },
+    "mcp-compass": {
+      "default": true,
+      "why": "From the source list: discover and evaluate other MCP servers by natural-language query.",
+      "source": "https://github.com/liuyoshio/mcp-compass",
+      "command": "npx", "args": ["-y", "@liuyoshio/mcp-compass"]
+    },
+    "github": {
+      "default": false,
+      "why": "PR review, issues and CI status for the mentoring-code-review and orchestration flows. Uses your gh token.",
+      "command": "npx", "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "" }
+    },
+    "playwright": {
+      "default": false,
+      "why": "Browser automation for front-end acceptance tests and onboarding-funnel verification.",
+      "command": "npx", "args": ["-y", "@playwright/mcp@latest"]
+    },
+    "postgres": {
+      "default": false,
+      "why": "Read-only DB inspection for the redundant-query and slow-query audits.",
+      "command": "npx", "args": ["-y", "@modelcontextprotocol/server-postgres"],
+      "env": { "POSTGRES_CONNECTION_STRING": "" }
+    },
+    "mcp-installer": {
+      "default": false,
+      "why": "From the source list: lets Claude install further MCP servers by name. Convenience only; review what it installs.",
+      "source": "https://github.com/anaisbetts/mcp-installer",
+      "command": "npx", "args": ["-y", "@anaisbetts/mcp-installer"]
+    }
+  }
+}

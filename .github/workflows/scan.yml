@@ -1,0 +1,26 @@
+name: skill-security-scan
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Structural checks
+        run: make check
+      - name: Install SkillSpector
+        run: pip install skillspector
+      - name: SkillSpector scan
+        run: |
+          skillspector scan plugins/fayah-core --format json --output skillspector-report.json
+          skillspector scan mcp/servers.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: skillspector-report
+          path: skillspector-report.json

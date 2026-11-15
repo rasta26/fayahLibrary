@@ -1,0 +1,16 @@
+{
+  "description": "Feature-usage telemetry for your own Claude Code sessions. Appends one JSON line per tool call to ~/.fayah/events.jsonl. Local only; nothing leaves the machine.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|Bash|Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/log-event.sh\""
+          }
+        ]
+      }
+    ]
+  }
+}

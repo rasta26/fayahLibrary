@@ -1,0 +1,9 @@
+{
+  "name": "fayah-core",
+  "version": "0.1.0",
+  "description": "Code-quality audits, event tracking, spec-first TDD, manager/sub-agent orchestration, mentoring code review and coding katas.",
+  "author": {
+    "name": "Gerry Roberts"
+  },
+  "keywords": ["code-review", "tdd", "observability", "orchestration", "mentoring"]
+}

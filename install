@@ -1,0 +1,162 @@
+#!/usr/bin/env bash
+# fayahLibrary installer
+#   ./install                  core: plugin (skills, agents, commands, hooks) + default MCP servers
+#   ./install --mcp NAME       add one optional MCP server from mcp/servers.json
+#   ./install --external       menu of optional third-party tools from external/catalog.json
+#   ./install --external NAME  install one third-party tool
+#   ./install --scan           run SkillSpector over this repo (also: make scan)
+#   ./install --uninstall      remove plugin + symlink fallback
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+FAYAH_HOME="${FAYAH_HOME:-$HOME/.fayah}"
+MARKET="fayah-library"
+PLUGIN="fayah-core"
+
+say()  { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
+warn() { printf '\033[1;33mwarn:\033[0m %s\n' "$*" >&2; }
+die()  { printf '\033[1;31merror:\033[0m %s\n' "$*" >&2; exit 1; }
+need() { command -v "$1" >/dev/null 2>&1 || die "missing dependency: $1 ($2)"; }
+
+# ---------- SkillSpector gate ----------
+scan() {
+  if ! command -v skillspector >/dev/null 2>&1; then
+    say "SkillSpector not found; installing (pip)"
+    python3 -m pip install --user -q skillspector 2>/dev/null \
+      || pipx install skillspector 2>/dev/null \
+      || die "could not install skillspector; see https://github.com/NVIDIA/SkillSpector"
+  fi
+  say "Scanning skills, agents, commands and MCP config"
+  local rc=0
+  skillspector scan "$ROOT/plugins/$PLUGIN/skills" --format json --output "$ROOT/.skillspector-report.json" || rc=$?
+  skillspector scan "$ROOT/plugins/$PLUGIN"        || rc=$?
+  skillspector scan "$ROOT/mcp/servers.json"        || rc=$?
+  if [ "$rc" -ne 0 ]; then
+    die "SkillSpector reported findings (exit $rc). Fix or baseline before committing. Report: .skillspector-report.json"
+  fi
+  say "SkillSpector: clean"
+}
+
+# ---------- core plugin ----------
+install_plugin() {
+  need claude "install Claude Code first: https://docs.claude.com/en/docs/claude-code"
+  say "Registering marketplace '$MARKET' from $ROOT"
+  if claude plugin marketplace add "$ROOT" >/dev/null 2>&1 || claude plugin marketplace update "$MARKET" >/dev/null 2>&1; then
+    say "Installing plugin $PLUGIN@$MARKET"
+    claude plugin install "$PLUGIN@$MARKET" --scope user || warn "plugin install returned non-zero; falling back to symlinks"
+  else
+    warn "claude plugin marketplace commands unavailable; falling back to symlinks"
+    symlink_fallback
+  fi
+}
+
+symlink_fallback() {
+  local src="$ROOT/plugins/$PLUGIN"
+  for kind in skills agents commands; do
+    mkdir -p "$HOME/.claude/$kind"
+    for item in "$src/$kind"/*; do
+      [ -e "$item" ] || continue
+      ln -sfn "$item" "$HOME/.claude/$kind/$(basename "$item")"
+    done
+  done
+  say "Symlinked skills/agents/commands into ~/.claude (hooks and .mcp.json need the plugin path; see README)"
+}
+
+uninstall() {
+  claude plugin uninstall "$PLUGIN@$MARKET" 2>/dev/null || true
+  claude plugin marketplace remove "$MARKET" 2>/dev/null || true
+  for kind in skills agents commands; do
+    for item in "$ROOT/plugins/$PLUGIN/$kind"/*; do
+      [ -e "$item" ] || continue
+      local link="$HOME/.claude/$kind/$(basename "$item")"
+      [ -L "$link" ] && rm -f "$link"
+    done
+  done
+  say "Removed $PLUGIN"
+}
+
+# ---------- MCP servers ----------
+mcp_add() {
+  local name="$1"
+  need jq "apt/brew install jq"
+  local entry; entry="$(jq -c --arg n "$name" '.servers[$n] // empty' "$ROOT/mcp/servers.json")"
+  [ -n "$entry" ] || die "no MCP server named '$name' in mcp/servers.json"
+  # prompt for empty env vars
+  local envargs=()
+  for key in $(printf '%s' "$entry" | jq -r '(.env // {}) | keys[]'); do
+    local val; val="$(printf '%s' "$entry" | jq -r --arg k "$key" '.env[$k]')"
+    if [ -z "$val" ]; then
+      val="${!key:-}"
+      if [ -z "$val" ]; then
+        read -r -s -p "  $key for $name (leave blank to skip server): " val; echo
+        [ -n "$val" ] || { warn "skipped $name"; return 0; }
+      fi
+    fi
+    envargs+=(-e "$key=$val")
+  done
+  local cmd; cmd="$(printf '%s' "$entry" | jq -r '.command')"
+  mapfile -t args < <(printf '%s' "$entry" | jq -r '.args[]')
+  say "MCP: adding $name"
+  claude mcp remove "$name" --scope user >/dev/null 2>&1 || true
+  claude mcp add --scope user "${envargs[@]}" "$name" -- "$cmd" "${args[@]}"
+}
+
+mcp_defaults() {
+  need jq "apt/brew install jq"
+  for n in $(jq -r '.servers | to_entries[] | select(.value.default) | .key' "$ROOT/mcp/servers.json"); do
+    mcp_add "$n"
+  done
+}
+
+# ---------- external tools ----------
+external_one() {
+  local name="$1"
+  need jq "apt/brew install jq"
+  local t; t="$(jq -c --arg n "$name" '.tools[$n] // empty' "$ROOT/external/catalog.json")"
+  [ -n "$t" ] || die "no external tool named '$name'"
+  local url kind method pkg post
+  url="$(jq -r .url <<<"$t")"; kind="$(jq -r .kind <<<"$t")"
+  method="$(jq -r .install <<<"$t")"; pkg="$(jq -r '.package // empty' <<<"$t")"
+  post="$(jq -r '.post // empty' <<<"$t")"
+  mkdir -p "$FAYAH_HOME/external"
+  say "External: $name ($kind) via $method"
+  case "$method" in
+    clone)
+      local dest="$FAYAH_HOME/external/$name"
+      if [ -d "$dest/.git" ]; then git -C "$dest" pull --ff-only; else git clone --depth 1 "$url" "$dest"; fi
+      if command -v skillspector >/dev/null 2>&1 && [ "$kind" != "reference" ]; then
+        skillspector scan "$dest" || warn "SkillSpector flagged $name; review before using"
+      fi ;;
+    npm) need npm "install Node.js"; npm install -g "$pkg" ;;
+    pip) need python3 "install Python 3.12+"; python3 -m pip install --user -q "$pkg" || pipx install "$pkg" ;;
+    *) die "unknown install method $method" ;;
+  esac
+  [ -n "$post" ] && bash -c "$post"
+  return 0
+}
+
+external_menu() {
+  need jq "apt/brew install jq"
+  echo "Optional tools (space-separated numbers, or 'all'):"
+  mapfile -t names < <(jq -r '.tools | keys[]' "$ROOT/external/catalog.json")
+  local i=1
+  for n in "${names[@]}"; do
+    printf '  %2d) %-22s %s\n' "$i" "$n" "$(jq -r --arg n "$n" '.tools[$n].why' "$ROOT/external/catalog.json")"
+    i=$((i+1))
+  done
+  read -r -p "> " choice
+  if [ "$choice" = "all" ]; then for n in "${names[@]}"; do external_one "$n"; done; return; fi
+  for c in $choice; do external_one "${names[$((c-1))]}"; done
+}
+
+# ---------- main ----------
+case "${1:-}" in
+  "")            install_plugin; mcp_defaults; chmod +x "$ROOT/plugins/$PLUGIN/hooks/log-event.sh"
+                 say "Done. Restart Claude Code, then try /cleanup-audit, /spec, /orchestrate, /review, /kata, /add-tracking" ;;
+  --mcp)         [ -n "${2:-}" ] || die "usage: ./install --mcp NAME"; mcp_add "$2" ;;
+  --external)    if [ -n "${2:-}" ]; then external_one "$2"; else external_menu; fi ;;
+  --scan)        scan ;;
+  --uninstall)   uninstall ;;
+  -h|--help)     sed -n "2,8p" "$0" ;;
+  *)             die "unknown option $1 (try --help)" ;;
+esac

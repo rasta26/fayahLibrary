@@ -1,0 +1,89 @@
+{
+  "_comment": "Third-party tools kept from the source list. Nothing here is installed by default: ./install --external opens a menu; ./install --external <name> installs one. Every entry is cloned/installed into ~/.fayah/external and scanned with SkillSpector where it contains skills or MCP config.",
+  "tools": {
+    "awesome-claude-code": {
+      "kind": "reference",
+      "url": "https://github.com/hesreallyhim/awesome-claude-code",
+      "why": "Source for new skills, hooks and commands to vet and import into this library.",
+      "install": "clone"
+    },
+    "awesome-mcp-servers": {
+      "kind": "reference",
+      "url": "https://github.com/punkpeye/awesome-mcp-servers",
+      "why": "Source for new MCP servers to add to mcp/servers.json.",
+      "install": "clone"
+    },
+    "claude-cookbooks": {
+      "kind": "reference",
+      "url": "https://github.com/anthropics/claude-cookbooks",
+      "why": "Worked examples for learning AI development (tool use, agents, evals).",
+      "install": "clone"
+    },
+    "claude-quickstarts": {
+      "kind": "reference",
+      "url": "https://github.com/anthropics/claude-quickstarts",
+      "why": "Starter apps to practise agent patterns; good kata bases.",
+      "install": "clone"
+    },
+    "superclaude": {
+      "kind": "plugin",
+      "url": "https://github.com/SuperClaude-Org/SuperClaude_Framework",
+      "why": "Personas and commands (analyze, improve, troubleshoot) that complement the review skills. Heavy; try before adopting.",
+      "install": "clone",
+      "post": "echo 'See README in ~/.fayah/external/superclaude for its installer (pipx/npm).'"
+    },
+    "claude-task-master": {
+      "kind": "tool",
+      "url": "https://github.com/eyaltoledano/claude-task-master",
+      "why": "Turns a PRD/spec into a dependency-ordered task list; pairs with the manager-orchestration skill.",
+      "install": "npm",
+      "package": "task-master-ai"
+    },
+    "claude-swarm": {
+      "kind": "tool",
+      "url": "https://github.com/parruda/swarm",
+      "why": "Multi-agent orchestration with persistent memory (Ruby). Alternative to the built-in Agent tool for larger teams of agents.",
+      "install": "clone"
+    },
+    "claude-code-router": {
+      "kind": "tool",
+      "url": "https://github.com/musistudio/claude-code-router",
+      "why": "Route Claude Code requests to other model providers; useful for cheap sub-agent waves.",
+      "install": "npm",
+      "package": "@musistudio/claude-code-router"
+    },
+    "mcphub": {
+      "kind": "tool",
+      "url": "https://github.com/samanhappy/mcphub",
+      "why": "Single gateway in front of many MCP servers once mcp/servers.json grows past a handful.",
+      "install": "clone"
+    },
+    "skillspector": {
+      "kind": "security",
+      "url": "https://github.com/NVIDIA/SkillSpector",
+      "why": "Required commit gate: scans every skill, agent, command and MCP config in this repo. Installed by `make scan` if missing.",
+      "install": "pip",
+      "package": "skillspector"
+    },
+    "aider": {
+      "kind": "agent",
+      "url": "https://github.com/Aider-AI/aider",
+      "why": "Terminal pair-programmer; useful for comparing agent behaviours in mentoring sessions.",
+      "install": "pip",
+      "package": "aider-chat"
+    },
+    "openhands": {
+      "kind": "agent",
+      "url": "https://github.com/OpenHands/OpenHands",
+      "why": "Autonomous agent platform (formerly OpenDevin). Reference implementation for agent architecture study.",
+      "install": "clone"
+    }
+  },
+  "dropped": {
+    "claude-engineer": "Superseded by Claude Code itself.",
+    "claude-dev-tools (zebbern)": "Repo not found under that name; zebbern/claude-code-guide is a doc, link it from docs instead.",
+    "mcphub (idosal)": "Wrong owner in source list; replaced by samanhappy/mcphub.",
+    "continue, cline, open-interpreter": "IDE/desktop agents outside the Claude Code workflow; install from their own sites if wanted.",
+    "claude-desktop-extensions": "Only relevant if you ship Claude Desktop extensions; see anthropics/mcpb."
+  }
+}
