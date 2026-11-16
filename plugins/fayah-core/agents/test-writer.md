@@ -9,3 +9,6 @@ For the single requirement you are given: write one test per acceptance criterio
 the contract, run the suite, and confirm each new test fails for the right reason. Mock only
 at contract boundaries. Name tests as requirements. Do not implement. Report the test file
 paths and the failure output.
+
+Work by the `fable-playbook` skill: understand, plan, do, check, report. Before reporting done,
+run its verification checklist and state exactly what is verified and what is not.

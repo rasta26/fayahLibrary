@@ -12,3 +12,6 @@ front-end tasks in parallel, then integration. Dispatch each task with the sub-a
 from the skill. After each sub-agent returns, verify tests on the shared branch and that it
 touched only its owned files. Return a conflict to its author; never resolve it yourself.
 Finish with a report: requirements covered, tests added, deferred items, risks.
+
+Work by the `fable-playbook` skill: understand, plan, do, check, report. Before reporting done,
+run its verification checklist and state exactly what is verified and what is not.

@@ -24,7 +24,7 @@ afterwards.
 | **MCP (optional)** | `github`, `playwright`, `postgres`, `mcp-installer` → `./install --mcp <name>` |
 | **External (optional)** | Task Master, SuperClaude, Claude Swarm, Claude Code Router, MCPHub, aider, OpenHands, the awesome-lists and Anthropic cookbooks → `./install --external` |
 
-How the skills fit together: `fable-playbook` is the base discipline for every task
+How the skills fit together: `fable-playbook` is the base discipline for every task and every agent
 (understand → plan → do → check → report). `/spec` writes requirements and contracts → `/orchestrate`
 runs the manager, which dispatches sub-agents that each TDD one requirement and merge into the
 shared branch → `/review` for mentoring review of the result → `/cleanup-audit` and
