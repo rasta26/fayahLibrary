@@ -34,13 +34,18 @@ EOF
   export FAKE_LOG="$LOG"
   PATH_SANDBOX="$BIN:/usr/bin:/bin"
 }
-run() { env -u SKILLSPECTOR_PROVIDER PATH="$PATH_SANDBOX" FAKE_LOG="$LOG" "$@" >"$T/out" 2>&1; }
+run() { env -u SKILLSPECTOR_PROVIDER PATH="$PATH_SANDBOX" FAKE_LOG="$LOG" SKILLSPECTOR_BASELINE="${BASELINE_OVERRIDE:-$T/none.yaml}" "$@" >"$T/out" 2>&1; }
 
 echo "R1 scans every target with the gate flags"
 setup; run "$SUT"; rc=$?
 [ "$rc" -eq 0 ] && ok "exit 0 when all clean" || bad "exit 0 when all clean" "got $rc"
 [ "$(grep -c '^skillspector scan' "$LOG")" -eq 3 ] && ok "three scans" || bad "three scans"
-has "$LOG" "/plugins/fayah-core/skills --fail-on-findings --fail-on-incomplete --no-llm --format terminal --recursive" "skills scanned recursively, static, gated"
+has "$LOG" "/plugins/fayah-core/skills --fail-on-findings --no-llm --format terminal --recursive --fail-on-incomplete" "skills: recursive, static, gated on findings + coverage"
+has "$LOG" "/mcp/servers.json --fail-on-findings --no-llm --format terminal --fail-on-incomplete" "mcp: gated on findings + coverage"
+grep -E "/plugins/fayah-core --" "$LOG" | grep -q -- "--fail-on-incomplete" \
+  && bad "plugin: hook-script payloads are never fully modeled, so no coverage gate" \
+  || ok "plugin: hook-script payloads are never fully modeled, so no coverage gate"
+has "$LOG" "/plugins/fayah-core --fail-on-findings" "plugin: still gated on findings"
 has "$LOG" "/mcp/servers.json" "MCP config scanned"
 hasnt "$LOG" "--baseline" "no baseline flag without a baseline file"
 
@@ -53,7 +58,7 @@ setup; run env FAKE_RC_skills=1 FAKE_RC_plugin=2 "$SUT"; rc=$?
 
 echo "R3 file formats write one report per target"
 setup; run "$SUT" --format sarif --out "$T/res"
-has "$LOG" "--format sarif --recursive --output $T/res/skills.sarif" "skills.sarif"
+has "$LOG" "--format sarif --recursive --fail-on-incomplete --output $T/res/skills.sarif" "skills.sarif"
 has "$LOG" "--output $T/res/mcp.sarif" "mcp.sarif"
 [ -d "$T/res" ] && ok "output dir created" || bad "output dir created"
 setup; run "$SUT" --format markdown --out "$T/res"
@@ -76,13 +81,14 @@ grep -qE '@[0-9a-f]{40}$' "$LOG" && ok "pinned to a full commit SHA" || bad "pin
 setup; run "$SUT" install
 hasnt "$LOG" "uv tool install" "skips install when pinned version present"
 
-echo "R7 a repo baseline is applied when present"
-setup
+echo "R7 a baseline is applied when present"
+setup; touch "$T/b.yaml"; BASELINE_OVERRIDE="$T/b.yaml" run "$SUT"
+has "$LOG" "--baseline $T/b.yaml" "baseline passed to every scan"
+[ "$(grep -c -- "--baseline" "$LOG")" -eq 3 ] && ok "on all three targets" || bad "on all three targets"
 if [ -e "$ROOT/.skillspector-baseline.yaml" ]; then
-  run "$SUT"; has "$LOG" "--baseline $ROOT/.skillspector-baseline.yaml" "baseline passed"
-else
-  touch "$ROOT/.skillspector-baseline.yaml"; run "$SUT"; rm -f "$ROOT/.skillspector-baseline.yaml"
-  has "$LOG" "--baseline $ROOT/.skillspector-baseline.yaml" "baseline passed"
+  n_rules=$(grep -c "^  - id:" "$ROOT/.skillspector-baseline.yaml")
+  n_reasons=$(grep -c "^    reason:" "$ROOT/.skillspector-baseline.yaml")
+  [ "$n_rules" -eq "$n_reasons" ] && ok "every repo baseline rule has a reason" || bad "every repo baseline rule has a reason"
 fi
 
 echo; echo "$pass passed, $fail failed"

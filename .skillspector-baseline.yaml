@@ -1,0 +1,13 @@
+# SkillSpector baseline: reviewed, accepted findings. Applied automatically by
+# scripts/skillspector-scan. Every rule needs a reason. See
+# https://github.com/NVIDIA/skillspector/blob/main/docs/SUPPRESSION.md
+version: 2
+scanner_version: "2.13.5"
+
+rules:
+  - id: "BH1"
+    path: "hooks/hooks.json"
+    reason: >-
+      Reviewed 2026-11-16: the PostToolUse hook runs hooks/log-event.sh, which appends
+      tool name, session id and timestamp to ~/.fayah/events.jsonl. Local only, no
+      network, never blocks. Re-review if hooks.json or log-event.sh changes.

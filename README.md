@@ -44,7 +44,7 @@ make hooks     # git pre-commit hook that runs check + scan
 SkillSpector is installed the way upstream documents it — from the NVIDIA Git repo with
 `uv tool install` (pipx fallback), not from PyPI — pinned to a release commit in
 `scripts/skillspector-scan`. That script is the single source of truth for targets and flags
-(`--fail-on-findings --fail-on-incomplete`, `--recursive` for skills, `--no-llm` unless
+(`--fail-on-findings` everywhere, `--fail-on-incomplete` on skills and MCP config — the plugin's script hook can never be fully modeled statically —, `--recursive` for skills, `--no-llm` unless
 `SKILLSPECTOR_PROVIDER` is set). Accept known false positives in `.skillspector-baseline.yaml`
 (`skillspector baseline <path>`); it is applied automatically when present.
 

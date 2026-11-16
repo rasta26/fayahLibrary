@@ -11,7 +11,7 @@
 # SkillSpector is installed from Git, not PyPI. Pinned to a release commit so a
 # moved tag or a look-alike package can't change what the gate runs.
 #
-# Exit: 0 clean, 1 findings / incomplete coverage, 2 scanner error (worst wins).
+# Exit: 0 clean, 1 findings (or incomplete coverage on strict targets), 2 scanner error (worst wins).
 # LLM analysis runs only when SKILLSPECTOR_PROVIDER is set; otherwise --no-llm.
 set -euo pipefail
 
@@ -20,13 +20,16 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SKILLSPECTOR_VERSION="2.13.5"
 SKILLSPECTOR_COMMIT="9ffc3028df0ca6bbe52113e7820805d100f6f6f4" # tag v2.13.5
 SKILLSPECTOR_SRC="git+https://github.com/NVIDIA/skillspector.git@${SKILLSPECTOR_COMMIT}"
-BASELINE="$ROOT/.skillspector-baseline.yaml"
+BASELINE="${SKILLSPECTOR_BASELINE:-$ROOT/.skillspector-baseline.yaml}"
 
 # name | path (relative to ROOT) | extra scan args
+# --fail-on-incomplete is per target: the plugin ships a command hook that runs a
+# script, whose payload SkillSpector never models statically, so that target is
+# always "partial" by design. It still fails on any finding not in the baseline.
 TARGETS=(
-  "skills|plugins/fayah-core/skills|--recursive"
+  "skills|plugins/fayah-core/skills|--recursive --fail-on-incomplete"
   "plugin|plugins/fayah-core|"
-  "mcp|mcp/servers.json|"
+  "mcp|mcp/servers.json|--fail-on-incomplete"
 )
 
 say()  { printf '\033[1;34m==>\033[0m %s\n' "$*" >&2; }
@@ -58,7 +61,7 @@ scan_all() {
   local format="$1" out="$2"
   command -v skillspector >/dev/null 2>&1 || die "skillspector not installed; run: $0 install"
 
-  local common=(--fail-on-findings --fail-on-incomplete)
+  local common=(--fail-on-findings)
   [ -n "${SKILLSPECTOR_PROVIDER:-}" ] || common+=(--no-llm)
   [ -f "$BASELINE" ] && common+=(--baseline "$BASELINE")
 
