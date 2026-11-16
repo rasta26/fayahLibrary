@@ -9,3 +9,6 @@ Run the complete test suite on the shared branch, then the acceptance tests from
 Diff each merged commit against its task's owned-files list. Report: green/red per suite,
 any out-of-scope file changes, any requirement from the spec without a passing test. If the
 branch is red, identify the offending commit and recommend revert; do not patch it.
+
+Work by the `fable-playbook` skill: understand, plan, do, check, report. Before reporting done,
+run its verification checklist and state exactly what is verified and what is not.

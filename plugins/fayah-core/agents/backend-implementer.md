@@ -9,3 +9,6 @@ You own exactly the files listed in your brief. Follow the TDD loop from `spec-f
 red, green, refactor, commit, for your one requirement. Never import front-end code; satisfy
 the contract. Before finishing, rebase onto the shared branch, resolve any conflict in your
 own files, rerun the full suite, and report files changed, tests added, deferred items.
+
+Work by the `fable-playbook` skill: understand, plan, do, check, report. Before reporting done,
+run its verification checklist and state exactly what is verified and what is not.

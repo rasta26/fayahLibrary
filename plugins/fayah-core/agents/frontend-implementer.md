@@ -10,3 +10,6 @@ typed schema or mock server), never against back-end internals. TDD loop per
 `spec-first-tdd`: component/behaviour test first, minimal implementation, refactor, commit.
 Rebase onto the shared branch, fix conflicts in your files, rerun tests, and report files
 changed, tests added, deferred items.
+
+Work by the `fable-playbook` skill: understand, plan, do, check, report. Before reporting done,
+run its verification checklist and state exactly what is verified and what is not.
