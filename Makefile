@@ -1,13 +1,10 @@
-.PHONY: install scan external uninstall check hooks
+.PHONY: install scan uninstall check hooks
 
-install: ## Install plugin + default MCP servers into Claude Code
+install: ## Install the three job plugins + default MCP servers into Claude Code
 	./install
 
 scan: ## Run SkillSpector over skills, agents, commands and MCP config (commit gate)
 	./install --scan
-
-external: ## Menu of optional third-party tools
-	./install --external
 
 uninstall:
 	./install --uninstall

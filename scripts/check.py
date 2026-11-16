@@ -28,7 +28,7 @@ def frontmatter(p: Path):
     return fm, text
 
 for jp in ROOT.rglob("*.json"):
-    if ".git" in jp.parts:
+    if ".git" in jp.parts or "_archive" in jp.parts:
         continue
     try:
         json.loads(jp.read_text(encoding="utf-8"))
@@ -58,7 +58,7 @@ def scan_text(p: Path, text: str):
             line = text.count("\n", 0, m.start()) + 1
             warnings.append(f"{p.relative_to(ROOT)}:{line}: {label}: {m.group(0)[:60]!r}")
 
-for plugin_dir in (ROOT / "plugins").iterdir():
+for plugin_dir in [ROOT / pl["source"] for pl in mk["plugins"]]:
     for sk in (plugin_dir / "skills").glob("*/SKILL.md"):
         fm, text = frontmatter(sk)
         if fm is None:
@@ -74,12 +74,7 @@ for plugin_dir in (ROOT / "plugins").iterdir():
             if fm is None or "description" not in fm:
                 errors.append(f"{md.relative_to(ROOT)}: missing description frontmatter")
             scan_text(md, text)
-    for sh in (plugin_dir / "hooks").glob("*.sh"):
-        scan_text(sh, sh.read_text())
-    for cfg in ("hooks/hooks.json", ".mcp.json"):
-        f = plugin_dir / cfg
-        if f.exists():
-            scan_text(f, f.read_text())
+scan_text(ROOT / "shared/mcp.json", (ROOT / "shared/mcp.json").read_text())
 
 for w in warnings:
     print("WARN ", w)

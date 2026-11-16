@@ -1,0 +1,7 @@
+{
+  "name": "fayah-delivery",
+  "version": "0.2.0",
+  "description": "Spec-first, test-first feature delivery with a manager agent and helper agents; event tracking; cleanup audits.",
+  "author": { "name": "Gerry Roberts" },
+  "keywords": ["tdd", "orchestration", "observability", "code-quality"]
+}

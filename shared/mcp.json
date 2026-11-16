@@ -1,0 +1,27 @@
+{
+  "_comment": "The one list of connected tools (MCP servers). `default: true` are added by ./install. Others: ./install --mcp <name>. Entries with `env` prompt for the value if unset. playwright and postgres are undecided (audit 2026-11-16).",
+  "servers": {
+    "context7": {
+      "default": true,
+      "why": "Up-to-date library docs when picking up a new language or framework.",
+      "command": "npx", "args": ["-y", "@upstash/context7-mcp"]
+    },
+    "github": {
+      "default": false,
+      "why": "Pull requests, issues and CI status for code review and delivery. Uses your GitHub token.",
+      "command": "npx", "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "" }
+    },
+    "playwright": {
+      "default": false,
+      "why": "Browser automation for front-end acceptance tests and onboarding-funnel checks.",
+      "command": "npx", "args": ["-y", "@playwright/mcp@latest"]
+    },
+    "postgres": {
+      "default": false,
+      "why": "Read-only database inspection for redundant-query and slow-query audits.",
+      "command": "npx", "args": ["-y", "@modelcontextprotocol/server-postgres"],
+      "env": { "POSTGRES_CONNECTION_STRING": "" }
+    }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "name": "fayah-coaching",
+  "version": "0.2.0",
+  "description": "Coding practice exercises (katas) for mentees or yourself.",
+  "author": { "name": "Gerry Roberts" },
+  "keywords": ["kata", "practice", "mentoring"]
+}

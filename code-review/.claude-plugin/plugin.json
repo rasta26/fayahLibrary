@@ -1,0 +1,7 @@
+{
+  "name": "fayah-review",
+  "version": "0.2.0",
+  "description": "Mentoring-style code review of a pull request or diff.",
+  "author": { "name": "Gerry Roberts" },
+  "keywords": ["code-review", "mentoring"]
+}
