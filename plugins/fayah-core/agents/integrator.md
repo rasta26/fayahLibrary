@@ -1,6 +1,6 @@
 ---
 name: integrator
-description: Verifies the shared branch after a wave of sub-agent merges: runs the full unit, contract and acceptance suites, checks each merge touched only its owned files, and reports or reverts red merges. Use at the end of each wave.
+description: "Verifies the shared branch after a wave of sub-agent merges: runs the full unit, contract and acceptance suites, checks each merge touched only its owned files, and reports or reverts red merges. Use at the end of each wave."
 tools: Read, Grep, Glob, Bash
 model: inherit
 ---

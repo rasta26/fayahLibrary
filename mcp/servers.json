@@ -4,46 +4,48 @@
     "sequential-thinking": {
       "default": true,
       "why": "Structured step-by-step reasoning for audits and spec decomposition.",
-      "command": "npx", "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+      "command": "npx", "args": ["-y", "@modelcontextprotocol/server-sequential-thinking@2.1.1"]
     },
     "memory": {
       "default": true,
       "why": "Knowledge-graph memory across sessions: mentee growth notes, audit findings.",
-      "command": "npx", "args": ["-y", "@modelcontextprotocol/server-memory"]
+      "command": "npx", "args": ["-y", "@modelcontextprotocol/server-memory@2.1.1"]
     },
     "context7": {
       "default": true,
       "why": "Up-to-date library docs when picking up a new language or framework.",
-      "command": "npx", "args": ["-y", "@upstash/context7-mcp"]
+      "command": "npx", "args": ["-y", "@upstash/context7-mcp@4.7.0"]
     },
     "mcp-compass": {
       "default": true,
       "why": "From the source list: discover and evaluate other MCP servers by natural-language query.",
       "source": "https://github.com/liuyoshio/mcp-compass",
-      "command": "npx", "args": ["-y", "@liuyoshio/mcp-compass"]
+      "command": "npx", "args": ["-y", "@liuyoshio/mcp-compass@1.0.7"]
     },
     "github": {
       "default": false,
+      "deprecated": "npm package archived upstream (no security fixes); last version pinned. Consider GitHub's official github-mcp-server.",
       "why": "PR review, issues and CI status for the mentoring-code-review and orchestration flows. Uses your gh token.",
-      "command": "npx", "args": ["-y", "@modelcontextprotocol/server-github"],
+      "command": "npx", "args": ["-y", "@modelcontextprotocol/server-github@2025.4.8"],
       "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "" }
     },
     "playwright": {
       "default": false,
       "why": "Browser automation for front-end acceptance tests and onboarding-funnel verification.",
-      "command": "npx", "args": ["-y", "@playwright/mcp@latest"]
+      "command": "npx", "args": ["-y", "@playwright/mcp@0.0.85"]
     },
     "postgres": {
       "default": false,
+      "deprecated": "npm package archived upstream (no security fixes); last version pinned.",
       "why": "Read-only DB inspection for the redundant-query and slow-query audits.",
-      "command": "npx", "args": ["-y", "@modelcontextprotocol/server-postgres"],
+      "command": "npx", "args": ["-y", "@modelcontextprotocol/server-postgres@0.6.2"],
       "env": { "POSTGRES_CONNECTION_STRING": "" }
     },
     "mcp-installer": {
       "default": false,
       "why": "From the source list: lets Claude install further MCP servers by name. Convenience only; review what it installs.",
       "source": "https://github.com/anaisbetts/mcp-installer",
-      "command": "npx", "args": ["-y", "@anaisbetts/mcp-installer"]
+      "command": "npx", "args": ["-y", "@anaisbetts/mcp-installer@0.5.0"]
     }
   }
 }

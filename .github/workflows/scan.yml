@@ -1,26 +1,120 @@
 name: skill-security-scan
+
 on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
+
+# Least privilege by default; the scan job widens only what SARIF upload needs.
+permissions:
+  contents: read
+
+# Cancel superseded runs when new commits are pushed to the same ref.
+concurrency:
+  group: scan-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_VERSION: "0.10.x"
+  RESULTS_DIR: skillspector-results
+
 jobs:
-  scan:
+  check:
+    name: Structural checks + gate tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Structural checks
         run: make check
-      - name: Install SkillSpector
-        run: pip install skillspector
-      - name: SkillSpector scan
+      - name: SkillSpector gate contract tests
+        run: make test
+
+  scan:
+    name: SkillSpector scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # upload SARIF to code scanning
+      actions: read          # required by upload-sarif on private repos
+    env:
+      # Optional LLM pass: add an ANTHROPIC_API_KEY repo secret to enable it.
+      # Without it the gate runs static analysis only (--no-llm).
+      SKILLSPECTOR_PROVIDER: ${{ secrets.ANTHROPIC_API_KEY != '' && 'anthropic' || '' }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up uv
+        # Pinned to a full commit SHA (third-party action); comment tracks the tag.
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: false
+
+      - name: Install SkillSpector (pinned Git release)
         run: |
-          skillspector scan plugins/fayah-core --format json --output skillspector-report.json
-          skillspector scan mcp/servers.json
-      - uses: actions/upload-artifact@v4
+          scripts/skillspector-scan install
+          skillspector --version
+
+      - name: Scan (SARIF)
+        id: scan
+        run: |
+          rc=0
+          scripts/skillspector-scan --format sarif --out "$RESULTS_DIR" || rc=$?
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+
+      - name: Explain result (JSON + job summary)
+        if: always() && steps.scan.outcome == 'success'
+        run: |
+          scripts/skillspector-scan --format json --out "$RESULTS_DIR" || true
+          for f in "$RESULTS_DIR"/*.json; do
+            [ -f "$f" ] || continue
+            echo "::group::$(basename "$f" .json)"
+            jq '{recommendation: .risk_assessment.recommendation, score: .risk_assessment.score,
+                 issues: [.issues[]? | {id, severity, file: .location.file, message: (.message // .title)}],
+                 completeness: (.analysis_completeness // {} | {status, is_complete, limitations,
+                   ledger_exceptions: [.ledger_exceptions[]? | {reason, path, message}], scope_exclusions}),
+                 skills: [.skills[]? | {name: (.skill.name // .name), recommendation: .risk_assessment.recommendation,
+                   completeness: (.analysis_completeness // {} | {status, limitations, ledger_exceptions})}]}' "$f" \
+              | tee "$f.summary"
+            echo "::endgroup::"
+            { echo "### SkillSpector: $(basename "$f" .json)"; echo '```json'; cat "$f.summary"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      # A --recursive scan writes one SARIF run per skill, and code scanning
+      # rejects several runs with the same category. Give every run its own
+      # automationDetails.id (target + tool + run index; skills are scanned in
+      # sorted order) and upload the directory once without a `category` input.
+      - name: Tag SARIF runs with unique categories
+        if: always() && steps.scan.outcome == 'success'
+        run: |
+          mkdir -p sarif-upload
+          for f in "$RESULTS_DIR"/*.sarif; do
+            [ -f "$f" ] || continue
+            t="$(basename "$f" .sarif)"
+            jq --arg t "$t" '.runs |= [to_entries[] | .value + {automationDetails: {id: "skillspector-\($t)/run-\(.key)/"}}]' \
+              "$f" > "sarif-upload/$t.sarif"
+          done
+
+      # Fork PRs get a read-only token, so code-scanning upload is skipped there;
+      # the reports are still attached as an artifact below.
+      - name: Upload SARIF to code scanning
+        if: always() && hashFiles('sarif-upload/*.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          sarif_file: sarif-upload
+
+      - name: Upload reports
         if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: skillspector-report
-          path: skillspector-report.json
+          path: ${{ env.RESULTS_DIR }}/
+          if-no-files-found: ignore
+
+      - name: Enforce gate
+        if: steps.scan.outputs.rc != '0'
+        run: |
+          echo "::error::SkillSpector gate failed (exit ${{ steps.scan.outputs.rc }}): 1 = findings or incomplete coverage, 2 = scanner error. Fix, or accept known findings in .skillspector-baseline.yaml."
+          exit 1

@@ -52,6 +52,38 @@ SUSPICIOUS = [
     (r"(exfiltrat|send .* to http)", "exfiltration phrase"),
 ]
 
+def yaml_unsafe(p: Path, fm: dict):
+    """Plain (unquoted) YAML scalars can't contain ': ' or start with special chars;
+    SkillSpector then fails to parse the manifest (manifest_parse_error)."""
+    for k, v in fm.items():
+        if v[:1] in "\"'|>":
+            continue
+        if ": " in v or v.endswith(":") or " #" in v or v[:1] in "&*!%@`[{":
+            errors.append(f"{p.relative_to(ROOT)}: frontmatter '{k}' is not valid plain YAML; quote it")
+
+NPX_PKG = re.compile(r"^(@[^/@\s]+/)?[^/@\s]+$")  # package with no @version suffix
+
+def npx_unpinned(p: Path, node):
+    """Mirror SkillSpector RP1: npx MCP servers must pin an exact version."""
+    if isinstance(node, dict):
+        if node.get("command") == "npx":
+            pkgs = [a for a in node.get("args", []) if isinstance(a, str) and not a.startswith("-")]
+            pkg = pkgs[0] if pkgs else ""
+            if not pkg or NPX_PKG.match(pkg) or pkg.endswith(("@latest", "@next")):
+                errors.append(f"{p.relative_to(ROOT)}: npx MCP server '{pkg}' must pin a version (pkg@x.y.z)")
+        for v in node.values():
+            npx_unpinned(p, v)
+    elif isinstance(node, list):
+        for v in node:
+            npx_unpinned(p, v)
+
+for jp in ROOT.rglob("*.json"):
+    if ".git" not in jp.parts and jp.name in ("servers.json", ".mcp.json"):
+        try:
+            npx_unpinned(jp, json.loads(jp.read_text(encoding="utf-8")))
+        except ValueError:
+            pass  # reported above as invalid JSON
+
 def scan_text(p: Path, text: str):
     for pat, label in SUSPICIOUS:
         for m in re.finditer(pat, text, re.I):
@@ -67,12 +99,15 @@ for plugin_dir in (ROOT / "plugins").iterdir():
             errors.append(f"{sk.relative_to(ROOT)}: name '{fm.get('name')}' != dir '{sk.parent.name}'")
         if len(fm.get("description", "")) < 40:
             errors.append(f"{sk.relative_to(ROOT)}: description too short")
+        yaml_unsafe(sk, fm)
         scan_text(sk, text)
     for kind in ("agents", "commands"):
         for md in (plugin_dir / kind).glob("*.md"):
             fm, text = frontmatter(md)
             if fm is None or "description" not in fm:
                 errors.append(f"{md.relative_to(ROOT)}: missing description frontmatter")
+            if fm:
+                yaml_unsafe(md, fm)
             scan_text(md, text)
     for sh in (plugin_dir / "hooks").glob("*.sh"):
         scan_text(sh, sh.read_text())

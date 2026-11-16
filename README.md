@@ -36,11 +36,22 @@ Every skill, agent, command and MCP config in this repo is scanned with
 
 ```bash
 make check     # offline structural + static checks (no deps)
-make scan      # installs skillspector if missing, scans, non-zero exit on findings
-make hooks     # git pre-commit hook that runs both
+make scan      # installs the pinned skillspector if missing, scans, non-zero exit on findings
+make test      # offline contract tests for the gate script
+make hooks     # git pre-commit hook that runs check + scan
 ```
 
-CI (`.github/workflows/scan.yml`) repeats the scan on every PR and uploads the JSON report.
+SkillSpector is installed the way upstream documents it — from the NVIDIA Git repo with
+`uv tool install` (pipx fallback), not from PyPI — pinned to a release commit in
+`scripts/skillspector-scan`. That script is the single source of truth for targets and flags
+(`--fail-on-findings` everywhere, `--fail-on-incomplete` on skills and MCP config — the plugin's script hook can never be fully modeled statically —, `--recursive` for skills, `--no-llm` unless
+`SKILLSPECTOR_PROVIDER` is set). Accept known false positives in `.skillspector-baseline.yaml`
+(`skillspector baseline <path>`); it is applied automatically when present (not to the `--recursive` skills scan, which SkillSpector does not allow).
+
+CI (`.github/workflows/scan.yml`) runs the same script on every PR and push to `main`: SARIF goes
+to GitHub code scanning, a Markdown summary to the job page, and all reports to the
+`skillspector-report` artifact. Add an `ANTHROPIC_API_KEY` repo secret to turn on the LLM pass.
+To bump SkillSpector, update `SKILLSPECTOR_VERSION` and `SKILLSPECTOR_COMMIT` together.
 Third-party tools installed via `./install --external` are scanned on clone when they contain
 skills or MCP config.
 
