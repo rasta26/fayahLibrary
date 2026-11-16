@@ -16,9 +16,9 @@ afterwards.
 
 | Kind | Items |
 |------|-------|
-| **Skills** | `code-quality-review`, `event-tracking`, `spec-first-tdd`, `manager-orchestration`, `mentoring-code-review`, `coding-kata` |
+| **Skills** | `code-quality-review`, `event-tracking`, `spec-first-tdd`, `manager-orchestration`, `mentoring-code-review`, `coding-kata`, `agent-guardrails` |
 | **Agents** | `manager`, `spec-writer`, `test-writer`, `backend-implementer`, `frontend-implementer`, `integrator` |
-| **Commands** | `/cleanup-audit`, `/add-tracking`, `/spec`, `/orchestrate`, `/review`, `/kata` |
+| **Commands** | `/cleanup-audit`, `/add-tracking`, `/spec`, `/orchestrate`, `/review`, `/kata`, `/guardrails` |
 | **Hook** | `PostToolUse` → local tool-usage log at `~/.fayah/events.jsonl` (feature-usage telemetry for your own sessions; nothing leaves the machine) |
 | **MCP (default)** | `sequential-thinking`, `memory`, `context7`, `mcp-compass` |
 | **MCP (optional)** | `github`, `playwright`, `postgres`, `mcp-installer` → `./install --mcp <name>` |
@@ -27,7 +27,9 @@ afterwards.
 How the skills fit together: `/spec` writes requirements and contracts → `/orchestrate`
 runs the manager, which dispatches sub-agents that each TDD one requirement and merge into the
 shared branch → `/review` for mentoring review of the result → `/cleanup-audit` and
-`/add-tracking` for existing codebases → `/kata` to turn review findings into practice.
+`/add-tracking` for existing codebases → `/kata` to turn review findings into practice. `/guardrails` specs the five control
+patterns (feedback loop, corrective action, human approval, emergency stop, input/output guards)
+for any agent system, then hands off to `/orchestrate`.
 
 ## Security gate: SkillSpector
 
