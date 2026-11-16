@@ -11,8 +11,10 @@ This file only points; it never repeats what's inside.
 ## Which folder for which request
 | If the request is about...                                   | Open          |
 |--------------------------------------------------------------|---------------|
-| Reviewing a pull request or diff, PR feedback, 1:1 prep       | code-review/  |
+| Reviewing a pull request or diff, PR feedback                 | code-review/  |
 | A practice exercise or drill, for a mentee or for me          | coaching/     |
+| Preparing a mentoring 1:1                                     | coaching/     |
+| Auditing or reorganizing my AI setup                          | ai-setup/     |
 | Building a feature: spec, contracts, tests, splitting work    | delivery/     |
 | Adding analytics, monitoring or alerts to an app              | delivery/     |
 | Cleaning up a codebase: dead code, duplicates, tech debt      | delivery/     |
@@ -26,6 +28,13 @@ This file only points; it never repeats what's inside.
 - agents/: helpers it hands work to (delivery/ only)
 - templates/: blank starting points
 - examples/: finished work worth copying
+
+## Templates (use one whenever its job comes up)
+- code-review/templates/pr-review.md: PR review
+- coaching/templates/kata.md: practice exercise
+- coaching/templates/one-on-one-prep.md: mentoring 1:1 prep
+- delivery/templates/cleanup-audit.md: codebase cleanup audit
+- ai-setup/templates/setup-audit.md: AI setup audit
 
 ## Commands by folder
 - code-review/: /review
