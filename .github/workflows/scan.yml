@@ -64,35 +64,46 @@ jobs:
           scripts/skillspector-scan --format sarif --out "$RESULTS_DIR" || rc=$?
           echo "rc=$rc" >> "$GITHUB_OUTPUT"
 
-      - name: Job summary
+      - name: Explain result (JSON + job summary)
         if: always() && steps.scan.outcome == 'success'
         run: |
-          scripts/skillspector-scan --format markdown --out "$RESULTS_DIR" || true
-          for f in "$RESULTS_DIR"/*.md; do
+          scripts/skillspector-scan --format json --out "$RESULTS_DIR" || true
+          for f in "$RESULTS_DIR"/*.json; do
             [ -f "$f" ] || continue
-            { echo "## SkillSpector: $(basename "$f" .md)"; cat "$f"; echo; } >> "$GITHUB_STEP_SUMMARY"
+            echo "::group::$(basename "$f" .json)"
+            jq '{recommendation: .risk_assessment.recommendation, score: .risk_assessment.score,
+                 issues: [.issues[]? | {id, severity, file: .location.file, message: (.message // .title)}],
+                 completeness: (.analysis_completeness // {} | {status, is_complete, limitations,
+                   ledger_exceptions: [.ledger_exceptions[]? | {reason, path, message}], scope_exclusions}),
+                 skills: [.skills[]? | {name: (.skill.name // .name), recommendation: .risk_assessment.recommendation,
+                   completeness: (.analysis_completeness // {} | {status, limitations, ledger_exceptions})}]}' "$f" \
+              | tee "$f.summary"
+            echo "::endgroup::"
+            { echo "### SkillSpector: $(basename "$f" .json)"; echo '```json'; cat "$f.summary"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      # A --recursive scan writes one SARIF run per skill, and code scanning
+      # rejects several runs with the same category. Give every run its own
+      # automationDetails.id (target + tool + run index; skills are scanned in
+      # sorted order) and upload the directory once without a `category` input.
+      - name: Tag SARIF runs with unique categories
+        if: always() && steps.scan.outcome == 'success'
+        run: |
+          mkdir -p sarif-upload
+          for f in "$RESULTS_DIR"/*.sarif; do
+            [ -f "$f" ] || continue
+            t="$(basename "$f" .sarif)"
+            jq --arg t "$t" '.runs |= [to_entries[] | .value + {automationDetails: {id: "skillspector-\($t)/run-\(.key)/"}}]' \
+              "$f" > "sarif-upload/$t.sarif"
           done
 
       # Fork PRs get a read-only token, so code-scanning upload is skipped there;
       # the reports are still attached as an artifact below.
-      - name: Upload SARIF (skills)
-        if: always() && hashFiles('skillspector-results/skills.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+      - name: Upload SARIF to code scanning
+        if: always() && hashFiles('sarif-upload/*.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with:
-          sarif_file: ${{ env.RESULTS_DIR }}/skills.sarif
-          category: skillspector-skills
-      - name: Upload SARIF (plugin)
-        if: always() && hashFiles('skillspector-results/plugin.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
-        with:
-          sarif_file: ${{ env.RESULTS_DIR }}/plugin.sarif
-          category: skillspector-plugin
-      - name: Upload SARIF (mcp)
-        if: always() && hashFiles('skillspector-results/mcp.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
-        with:
-          sarif_file: ${{ env.RESULTS_DIR }}/mcp.sarif
-          category: skillspector-mcp
+          sarif_file: sarif-upload
 
       - name: Upload reports
         if: always()

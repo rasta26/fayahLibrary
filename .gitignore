@@ -3,3 +3,4 @@ skillspector-report.json
 skillspector-results/
 .DS_Store
 *.log
+sarif-upload/
