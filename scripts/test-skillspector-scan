@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+# Contract tests for scripts/skillspector-scan. Offline: fakes `skillspector`
+# and `uv` on PATH and asserts on the arguments they receive.
+#   scripts/test-skillspector-scan        (also: make test)
+set -uo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SUT="$ROOT/scripts/skillspector-scan"
+pass=0 fail=0
+
+ok()   { pass=$((pass+1)); printf '  ok   %s\n' "$1"; }
+bad()  { fail=$((fail+1)); printf '  FAIL %s\n' "$1"; [ -n "${2:-}" ] && printf '       %s\n' "$2"; }
+has()  { grep -qF -- "$2" "$1" && ok "$3" || bad "$3" "expected '$2' in: $(tr '\n' ';' <"$1")"; }
+hasnt(){ grep -qF -- "$2" "$1" && bad "$3" "unexpected '$2' in: $(tr '\n' ';' <"$1")" || ok "$3"; }
+
+# Fresh sandbox per test: fake bin dir + call log. FAKE_RC_<target> sets exit codes.
+setup() {
+  T="$(mktemp -d)"; BIN="$T/bin"; LOG="$T/calls"; mkdir -p "$BIN"; : >"$LOG"
+  cat >"$BIN/skillspector" <<'EOF'
+#!/usr/bin/env bash
+if [ "${1:-}" = --version ]; then echo "SkillSpector v${FAKE_VERSION:-2.13.5}"; exit 0; fi
+echo "skillspector $*" >>"$FAKE_LOG"
+case "$2" in
+  */skills)           exit "${FAKE_RC_skills:-0}" ;;
+  */mcp/servers.json) exit "${FAKE_RC_mcp:-0}" ;;
+  *)                  exit "${FAKE_RC_plugin:-0}" ;;
+esac
+EOF
+  cat >"$BIN/uv" <<'EOF'
+#!/usr/bin/env bash
+echo "uv $*" >>"$FAKE_LOG"
+EOF
+  chmod +x "$BIN"/*
+  export FAKE_LOG="$LOG"
+  PATH_SANDBOX="$BIN:/usr/bin:/bin"
+}
+run() { env -u SKILLSPECTOR_PROVIDER PATH="$PATH_SANDBOX" FAKE_LOG="$LOG" "$@" >"$T/out" 2>&1; }
+
+echo "R1 scans every target with the gate flags"
+setup; run "$SUT"; rc=$?
+[ "$rc" -eq 0 ] && ok "exit 0 when all clean" || bad "exit 0 when all clean" "got $rc"
+[ "$(grep -c '^skillspector scan' "$LOG")" -eq 3 ] && ok "three scans" || bad "three scans"
+has "$LOG" "/plugins/fayah-core/skills --fail-on-findings --fail-on-incomplete --no-llm --format terminal --recursive" "skills scanned recursively, static, gated"
+has "$LOG" "/mcp/servers.json" "MCP config scanned"
+hasnt "$LOG" "--baseline" "no baseline flag without a baseline file"
+
+echo "R2 worst exit code wins (2 > 1 > 0)"
+setup; run env FAKE_RC_mcp=1 "$SUT"; rc=$?
+[ "$rc" -eq 1 ] && ok "findings -> 1" || bad "findings -> 1" "got $rc"
+setup; run env FAKE_RC_skills=1 FAKE_RC_plugin=2 "$SUT"; rc=$?
+[ "$rc" -eq 2 ] && ok "scanner error -> 2" || bad "scanner error -> 2" "got $rc"
+[ "$(grep -c '^skillspector scan' "$LOG")" -eq 3 ] && ok "keeps scanning after a failure" || bad "keeps scanning after a failure"
+
+echo "R3 file formats write one report per target"
+setup; run "$SUT" --format sarif --out "$T/res"
+has "$LOG" "--format sarif --recursive --output $T/res/skills.sarif" "skills.sarif"
+has "$LOG" "--output $T/res/mcp.sarif" "mcp.sarif"
+[ -d "$T/res" ] && ok "output dir created" || bad "output dir created"
+setup; run "$SUT" --format markdown --out "$T/res"
+has "$LOG" "--output $T/res/plugin.md" "markdown uses .md"
+
+echo "R4 LLM only when a provider is configured"
+setup; run env SKILLSPECTOR_PROVIDER=anthropic "$SUT"
+hasnt "$LOG" "--no-llm" "provider set -> LLM analysis on"
+
+echo "R5 bad input is rejected with exit 2"
+setup; run "$SUT" --format html; rc=$?
+[ "$rc" -eq 2 ] && ok "bad format -> 2" || bad "bad format -> 2" "got $rc"
+setup; rm "$BIN/skillspector"; run "$SUT"; rc=$?
+[ "$rc" -eq 2 ] && ok "missing scanner -> 2" || bad "missing scanner -> 2" "got $rc"
+
+echo "R6 install is pinned to the upstream Git release, not PyPI"
+setup; run env FAKE_VERSION=2.0.0 "$SUT" install
+has "$LOG" "uv tool install --force --python 3.12 skillspector @ git+https://github.com/NVIDIA/skillspector.git@" "installs from NVIDIA Git"
+grep -qE '@[0-9a-f]{40}$' "$LOG" && ok "pinned to a full commit SHA" || bad "pinned to a full commit SHA"
+setup; run "$SUT" install
+hasnt "$LOG" "uv tool install" "skips install when pinned version present"
+
+echo "R7 a repo baseline is applied when present"
+setup
+if [ -e "$ROOT/.skillspector-baseline.yaml" ]; then
+  run "$SUT"; has "$LOG" "--baseline $ROOT/.skillspector-baseline.yaml" "baseline passed"
+else
+  touch "$ROOT/.skillspector-baseline.yaml"; run "$SUT"; rm -f "$ROOT/.skillspector-baseline.yaml"
+  has "$LOG" "--baseline $ROOT/.skillspector-baseline.yaml" "baseline passed"
+fi
+
+echo; echo "$pass passed, $fail failed"
+[ "$fail" -eq 0 ]

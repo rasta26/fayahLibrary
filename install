@@ -19,20 +19,14 @@ die()  { printf '\033[1;31merror:\033[0m %s\n' "$*" >&2; exit 1; }
 need() { command -v "$1" >/dev/null 2>&1 || die "missing dependency: $1 ($2)"; }
 
 # ---------- SkillSpector gate ----------
+# Install + targets + flags live in scripts/skillspector-scan (shared with CI).
 scan() {
-  if ! command -v skillspector >/dev/null 2>&1; then
-    say "SkillSpector not found; installing (pip)"
-    python3 -m pip install --user -q skillspector 2>/dev/null \
-      || pipx install skillspector 2>/dev/null \
-      || die "could not install skillspector; see https://github.com/NVIDIA/SkillSpector"
-  fi
+  "$ROOT/scripts/skillspector-scan" install
   say "Scanning skills, agents, commands and MCP config"
   local rc=0
-  skillspector scan "$ROOT/plugins/$PLUGIN/skills" --format json --output "$ROOT/.skillspector-report.json" || rc=$?
-  skillspector scan "$ROOT/plugins/$PLUGIN"        || rc=$?
-  skillspector scan "$ROOT/mcp/servers.json"        || rc=$?
+  "$ROOT/scripts/skillspector-scan" || rc=$?
   if [ "$rc" -ne 0 ]; then
-    die "SkillSpector reported findings (exit $rc). Fix or baseline before committing. Report: .skillspector-report.json"
+    die "SkillSpector gate failed (exit $rc). Fix, or accept known findings in .skillspector-baseline.yaml (skillspector baseline <path>)."
   fi
   say "SkillSpector: clean"
 }
