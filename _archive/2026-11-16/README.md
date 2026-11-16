@@ -11,3 +11,4 @@ Retired, not deleted. Original paths are kept. Nothing here is loaded.
 | external/catalog.json | Replaced by learning/references.md. Dropped: SuperClaude, Task Master, Claude Swarm, MCPHub, aider, OpenHands |
 | docs/CATALOG.md | History of the first triage; repeated catalog.json |
 | prompts/ | Copy of the rasta26/prompts repo (ultrathink persona prompt) |
+| plugins/fayah-core/agents/manager.md, commands/spec.md, commands/orchestrate.md | Original long versions; the live ones now point to their skill or agent |
