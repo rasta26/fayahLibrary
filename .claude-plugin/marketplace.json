@@ -1,19 +1,13 @@
 {
   "name": "fayah-library",
-  "owner": {
-    "name": "Gerry Roberts"
-  },
+  "owner": { "name": "Gerry Roberts" },
   "metadata": {
-    "description": "Gerry's personal Claude Code library: code-quality review, event tracking, spec-first TDD, manager/sub-agent orchestration, mentoring and kata skills.",
-    "version": "0.1.0"
+    "description": "Gerry's personal Claude Code library, one plugin per job: code review, coaching, delivery.",
+    "version": "0.2.0"
   },
   "plugins": [
-    {
-      "name": "fayah-core",
-      "source": "./plugins/fayah-core",
-      "description": "Core skills, agents, commands, hooks and MCP servers for principal-engineer workflows.",
-      "version": "0.1.0",
-      "category": "productivity"
-    }
+    { "name": "fayah-review",   "source": "./code-review", "description": "Mentoring-style code review.", "version": "0.2.0", "category": "productivity" },
+    { "name": "fayah-coaching", "source": "./coaching",    "description": "Coding practice exercises.",  "version": "0.2.0", "category": "productivity" },
+    { "name": "fayah-delivery", "source": "./delivery",    "description": "Spec-first, test-first delivery with manager and helper agents.", "version": "0.2.0", "category": "productivity" }
   ]
 }
