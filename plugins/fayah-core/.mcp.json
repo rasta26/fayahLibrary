@@ -2,19 +2,19 @@
   "mcpServers": {
     "sequential-thinking": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking@2.1.1"]
     },
     "memory": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-memory"]
+      "args": ["-y", "@modelcontextprotocol/server-memory@2.1.1"]
     },
     "context7": {
       "command": "npx",
-      "args": ["-y", "@upstash/context7-mcp"]
+      "args": ["-y", "@upstash/context7-mcp@4.7.0"]
     },
     "mcp-compass": {
       "command": "npx",
-      "args": ["-y", "@liuyoshio/mcp-compass"]
+      "args": ["-y", "@liuyoshio/mcp-compass@1.0.7"]
     }
   }
 }

@@ -75,6 +75,8 @@ mcp_add() {
   need jq "apt/brew install jq"
   local entry; entry="$(jq -c --arg n "$name" '.servers[$n] // empty' "$ROOT/mcp/servers.json")"
   [ -n "$entry" ] || die "no MCP server named '$name' in mcp/servers.json"
+  local dep; dep="$(printf '%s' "$entry" | jq -r '.deprecated // empty')"
+  [ -z "$dep" ] || warn "$name: $dep"
   # prompt for empty env vars
   local envargs=()
   for key in $(printf '%s' "$entry" | jq -r '(.env // {}) | keys[]'); do
