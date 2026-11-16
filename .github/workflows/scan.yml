@@ -25,6 +25,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: TEMP resolve MCP versions
+        run: |
+          for p in @modelcontextprotocol/server-sequential-thinking @modelcontextprotocol/server-memory @upstash/context7-mcp @liuyoshio/mcp-compass @modelcontextprotocol/server-github @playwright/mcp @modelcontextprotocol/server-postgres @anaisbetts/mcp-installer; do
+            echo "PIN $p $(npm view "$p" version) deprecated=$(npm view "$p" deprecated | head -c 80)"
+          done
       - name: Structural checks
         run: make check
       - name: SkillSpector gate contract tests

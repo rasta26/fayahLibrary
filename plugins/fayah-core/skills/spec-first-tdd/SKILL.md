@@ -1,6 +1,6 @@
 ---
 name: spec-first-tdd
-description: Specs-first, design-by-contract, test-driven implementation workflow. Use when starting any feature or fix: write the spec and contracts first, isolate front-end and back-end implementations behind the contract, then for each requirement write a failing test, implement, and move to the next.
+description: "Specs-first, design-by-contract, test-driven implementation workflow. Use when starting any feature or fix: write the spec and contracts first, isolate front-end and back-end implementations behind the contract, then for each requirement write a failing test, implement, and move to the next."
 ---
 
 # Spec First, Design by Contract, TDD
