@@ -46,7 +46,7 @@ SkillSpector is installed the way upstream documents it — from the NVIDIA Git 
 `scripts/skillspector-scan`. That script is the single source of truth for targets and flags
 (`--fail-on-findings` everywhere, `--fail-on-incomplete` on skills and MCP config — the plugin's script hook can never be fully modeled statically —, `--recursive` for skills, `--no-llm` unless
 `SKILLSPECTOR_PROVIDER` is set). Accept known false positives in `.skillspector-baseline.yaml`
-(`skillspector baseline <path>`); it is applied automatically when present.
+(`skillspector baseline <path>`); it is applied automatically when present (not to the `--recursive` skills scan, which SkillSpector does not allow).
 
 CI (`.github/workflows/scan.yml`) runs the same script on every PR and push to `main`: SARIF goes
 to GitHub code scanning, a Markdown summary to the job page, and all reports to the

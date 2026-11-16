@@ -83,8 +83,11 @@ hasnt "$LOG" "uv tool install" "skips install when pinned version present"
 
 echo "R7 a baseline is applied when present"
 setup; touch "$T/b.yaml"; BASELINE_OVERRIDE="$T/b.yaml" run "$SUT"
-has "$LOG" "--baseline $T/b.yaml" "baseline passed to every scan"
-[ "$(grep -c -- "--baseline" "$LOG")" -eq 3 ] && ok "on all three targets" || bad "on all three targets"
+has "$LOG" "--baseline $T/b.yaml" "baseline passed"
+[ "$(grep -c -- "--baseline" "$LOG")" -eq 2 ] && ok "on the two non-recursive targets" || bad "on the two non-recursive targets"
+grep -- "--recursive" "$LOG" | grep -q -- "--baseline" \
+  && bad "never with --recursive (SkillSpector rejects it, exit 2)" \
+  || ok "never with --recursive (SkillSpector rejects it, exit 2)"
 if [ -e "$ROOT/.skillspector-baseline.yaml" ]; then
   n_rules=$(grep -c "^  - id:" "$ROOT/.skillspector-baseline.yaml")
   n_reasons=$(grep -c "^    reason:" "$ROOT/.skillspector-baseline.yaml")

@@ -63,7 +63,6 @@ scan_all() {
 
   local common=(--fail-on-findings)
   [ -n "${SKILLSPECTOR_PROVIDER:-}" ] || common+=(--no-llm)
-  [ -f "$BASELINE" ] && common+=(--baseline "$BASELINE")
 
   [ "$format" = terminal ] || mkdir -p "$out"
   local worst=0 entry name path extra rc ext
@@ -71,6 +70,8 @@ scan_all() {
     IFS='|' read -r name path extra <<<"$entry"
     local args=(scan "$ROOT/$path" "${common[@]}" --format "$format")
     [ -n "$extra" ] && read -ra x <<<"$extra" && args+=("${x[@]}")
+    # SkillSpector rejects --baseline with --recursive (exit 2).
+    [[ -f "$BASELINE" && " $extra " != *" --recursive "* ]] && args+=(--baseline "$BASELINE")
     if [ "$format" != terminal ]; then
       case "$format" in markdown) ext=md ;; *) ext="$format" ;; esac
       args+=(--output "$out/$name.$ext")
